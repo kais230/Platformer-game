@@ -21,9 +21,10 @@ GAME_STATE_LOSE = 1
 GAME_STATE_WIN = 2
 
 window = pygame.display.set_mode((WIDTH,HEIGHT))
+wintime = 0
 
 
-def draw(window, background, bg_image, player, objects, offset_x, offset_y, healthbar, game_state, enemies, font, restart_button_rect):
+def draw(window, background, bg_image, player, objects, offset_x, offset_y, healthbar, game_state, enemies, font, restart_button_rect, current_time):
 
     #for tile in background:
     #   window.blit(bg_image, tuple(tile))  #This is where the back ground drawing occurs
@@ -59,6 +60,14 @@ def draw(window, background, bg_image, player, objects, offset_x, offset_y, heal
         text_large_rect = text_large.get_rect(center=(WIDTH // 2, HEIGHT // 2 - 50))
         window.blit(text_large, text_large_rect)
 
+        #elapsed_time = pygame.time.get_ticks()
+        minutes, seconds = divmod(current_time // 1000, 60)
+        timer_text = f"Time: {minutes:02d}:{seconds:02d}"
+
+        font_timer = pygame.font.Font(None, 24)
+        text_timer = font_timer.render(timer_text, True, (0, 255, 0))
+        window.blit(text_timer, (WIDTH // 2 - 45, HEIGHT // 2 - 20))
+
         pygame.draw.rect(window, (0, 255, 0), restart_button_rect)
         font_small = pygame.font.Font(None, 36)
         text_restart = font_small.render("Restart", True, (0, 0, 0))
@@ -66,6 +75,14 @@ def draw(window, background, bg_image, player, objects, offset_x, offset_y, heal
         window.blit(text_restart, text_restart_rect)
 
     healthbar.draw(window)
+
+    if game_state != GAME_STATE_WIN:
+        minutes, seconds = divmod(current_time // 1000, 60)
+        timer_text = f"Time: {minutes:02d}:{seconds:02d}"
+
+        font_timer = pygame.font.Font(None, 24)
+        text_timer = font_timer.render(timer_text, True, (255, 255, 255))
+        window.blit(text_timer, (WIDTH - 120, 10))
 
     pygame.display.update()
 
@@ -126,7 +143,7 @@ def handle_move(player, objects, enemies, healthbar):
             healthbar.hp = player.hp
 
 
-def main(window):
+def main(window, time):
     clock = pygame.time.Clock()
     background, bg_image=get_background("Blue.png")
 
@@ -167,7 +184,9 @@ def main(window):
 
     font = pygame.font.Font(None, 36)
     restart_button_rect = pygame.Rect(WIDTH // 2 - 50, HEIGHT // 2 + 50, 100, 50)
+    current_time=pygame.time.get_ticks()
     while run:
+
         clock.tick(FPS)
         dt = clock.get_time() / 1000.0
 
@@ -202,14 +221,21 @@ def main(window):
 
         if healthbar.hp <= 0:
             game_state = GAME_STATE_LOSE
+            wintime = pygame.time.get_ticks()
+
+        if game_state != GAME_STATE_WIN:
+            current_time = pygame.time.get_ticks() - time
+        else:
+            wintime = pygame.time.get_ticks()
+
 
         if event.type == pygame.MOUSEBUTTONDOWN and (game_state == GAME_STATE_LOSE or game_state == GAME_STATE_WIN):
             if restart_button_rect.collidepoint(event.pos):
-                restart_game(window)
+                restart_game(window,wintime)
 
         handle_move(player, objects, enemies, healthbar)
 
-        draw(window, background, bg_image, player, objects, offset_x, offset_y, healthbar, game_state, enemies, font, restart_button_rect)
+        draw(window, background, bg_image, player, objects, offset_x, offset_y, healthbar, game_state, enemies, font, restart_button_rect, current_time)
 
         if ((player.rect.right - offset_x >= WIDTH - scroll_area_width) and player.x_vel > 0) or (
                 (player.rect.left - offset_x <= scroll_area_width) and player.x_vel < 0):
@@ -223,9 +249,9 @@ def main(window):
     quit()
 
 
-def restart_game(window):
-    main(window)
+def restart_game(window,wintime):
+    main(window,wintime)
 
 
 if __name__ == "__main__":
-    main(window)
+    main(window,0)
